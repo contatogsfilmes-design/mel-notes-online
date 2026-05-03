@@ -386,7 +386,7 @@ tr:hover td{background:var(--r1)}
       <button class="btn btn-g" onclick="exportarBackup()">💾 Backup</button>
       <div class="btn btn-g" style="padding:0;overflow:hidden">
         <label style="display:flex;align-items:center;gap:5px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:500;color:var(--tm)">
-          📥 Restaurar
+          📥 Importar backup
           <input type="file" accept=".json" onchange="importarBackup(this)" style="display:none">
         </label>
       </div>
@@ -717,26 +717,24 @@ function exportarBackup() {
   toast('💾 Backup exportado!');
 }
 
-function importarBackup(input) {
-  fecharUserMenu();
+async function importarBackup(input) {
   const file = input.files[0];
   if (!file) return;
+  input.value = '';
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async e => {
     try {
       const dados = JSON.parse(e.target.result);
-      const novo = normalizar(dados);
-      confirm_('Restaurar Backup', `Isso vai <strong>substituir todos os dados atuais</strong> pelo backup. Tem certeza?`, async () => {
-        S = novo;
-        await db.collection('users').doc(currentUser.uid).set({ data: JSON.parse(JSON.stringify(S)) });
-        piscar();
-        render();
-        toast('✅ Backup restaurado!');
-      });
+      S = normalizar(dados);
+      await db.collection('users').doc(currentUser.uid).set({ data: JSON.parse(JSON.stringify(S)) });
+      cm('m-perfil');
+      render();
+      atualizarUserUI(currentUser);
+      piscar();
+      toast('✅ Backup importado e salvo!');
     } catch {
-      toast('⚠️ Arquivo inválido.');
+      toast('⚠️ Arquivo inválido. Verifique se é um backup do Mel Notes.');
     }
-    input.value = '';
   };
   reader.readAsText(file);
 }
