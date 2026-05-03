@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mel Notes</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#faf8f7;--card:#fff;--sidebar:#fff5f6;
+  --r1:#fff0f2;--r2:#fde0e5;--r3:#fbbdca;--r4:#f893a9;--r5:#e05a72;--r6:#c84460;
+  --td:#28191c;--tm:#6b4a52;--tl:#a07880;--tx:#c0a0a8;
+  --bl:#f2e4e7;--bd:#e8d0d5;
+  --ss:0 1px 4px rgba(160,80,96,.07);--sm:0 4px 20px rgba(160,80,96,.11);--sl:0 8px 40px rgba(160,80,96,.15);
+  --rsm:8px;--r:12px;--rlg:16px;--t:.18s ease;
+  --nav:64px;--psw:260px;--hh:58px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--td);height:100vh;overflow:hidden;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+
+/* LOADING */
+#loading-screen{position:fixed;inset:0;z-index:600;background:linear-gradient(135deg,#fff0f3,#fde8ec 50%,#fdf0f5);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.ls-logo{font-size:52px;animation:pulse 1.5s ease infinite}
+.ls-text{font-size:14px;color:var(--tm);font-weight:500}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;z-index:500;background:linear-gradient(135deg,#fff0f3,#fde8ec 50%,#fdf0f5);display:flex;align-items:center;justify-content:center;display:none}
+.lc{background:#fff;border:1px solid var(--r3);border-radius:24px;padding:44px 48px 40px;width:100%;max-width:420px;box-shadow:var(--sl);text-align:center}
+.lc-logo{font-size:48px;margin-bottom:10px;line-height:1}
+.lc-name{font-size:24px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px}
+.lc-sub{font-size:12px;color:var(--tx);margin-bottom:26px}
+.lc-tabs{display:flex;background:var(--r1);border-radius:var(--rsm);padding:3px;margin-bottom:16px;gap:3px}
+.lc-tab{flex:1;padding:8px;border:none;background:transparent;border-radius:6px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;color:var(--tm);transition:all var(--t)}
+.lc-tab.active{background:#fff;color:var(--r6);box-shadow:var(--ss)}
+.lf{display:flex;flex-direction:column;gap:9px}
+.lfi{padding:11px 13px;border:1px solid var(--bd);border-radius:var(--rsm);font-size:13.5px;font-family:inherit;color:var(--td);background:var(--bg);outline:none;transition:border-color var(--t);width:100%}
+.lfi:focus{border-color:var(--r4);box-shadow:0 0 0 3px var(--r2);background:#fff}
+.lfi::placeholder{color:var(--tx)}
+.lfi.err{border-color:var(--r5)}
+.lb{padding:12px 16px;border-radius:var(--rsm);border:none;cursor:pointer;font-size:14px;font-weight:600;font-family:inherit;transition:all var(--t);display:flex;align-items:center;justify-content:center;gap:9px;width:100%}
+.lb-p{background:linear-gradient(135deg,var(--r5),var(--r6));color:#fff;box-shadow:0 4px 14px rgba(200,68,96,.3)}
+.lb-p:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(200,68,96,.38)}
+.lb-g{background:#fff;color:#3c4043;border:1px solid var(--bd)}
+.lb-g:hover{background:var(--r1);border-color:var(--r3)}
+.ldiv{font-size:11px;color:var(--tx);text-align:center;padding:6px 0;position:relative;margin:4px 0}
+.ldiv::before,.ldiv::after{content:'';position:absolute;top:50%;width:44%;height:1px;background:var(--bd)}
+.ldiv::before{left:0}.ldiv::after{right:0}
+.lerr-box{background:#fff0f0;border:1px solid #facccc;border-radius:var(--rsm);padding:9px 12px;font-size:12px;color:#c0392b;text-align:left;display:none}
+.lerr-box.show{display:block}
+
+/* USER MENU */
+.user-wrap{position:relative}
+.user-btn{width:34px;height:34px;border-radius:50%;border:2px solid var(--r3);overflow:hidden;cursor:pointer;background:linear-gradient(135deg,var(--r3),var(--r5));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;transition:border-color var(--t);padding:0}
+.user-btn:hover{border-color:var(--r5)}
+.user-btn img{width:100%;height:100%;object-fit:cover;display:block}
+.udrop{position:absolute;top:calc(100% + 10px);right:0;background:#fff;border:1px solid var(--bl);border-radius:var(--r);box-shadow:var(--sl);min-width:220px;z-index:200;overflow:hidden;animation:fadein .15s ease}
+.udrop-hd{padding:14px;border-bottom:1px solid var(--bl);text-align:left}
+.udrop-name{font-size:13px;font-weight:700;color:var(--td);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.udrop-email{font-size:11px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.udrop-items{padding:6px}
+.udrop-item{width:100%;padding:9px 12px;border:none;background:transparent;border-radius:var(--rsm);font-size:13px;font-family:inherit;color:var(--tm);cursor:pointer;display:flex;align-items:center;gap:9px;transition:background var(--t);text-align:left}
+.udrop-item:hover{background:var(--r1);color:var(--r5)}
+.udrop-item label{display:flex;align-items:center;gap:9px;cursor:pointer;width:100%;font-size:13px;color:inherit}
+.udrop-item input[type=file]{display:none}
+.udrop-div{height:1px;background:var(--bl);margin:4px 0}
+.udrop-sair{color:#c0392b}
+.udrop-sair:hover{background:#fff0f0!important;color:#c0392b!important}
+
+/* APP SHELL */
+#app{display:none;flex-direction:column;height:100vh}
+.hdr{height:var(--hh);background:#fff;border-bottom:1px solid var(--bl);display:flex;align-items:center;padding:0 20px 0 0;gap:14px;flex-shrink:0;box-shadow:var(--ss);z-index:10}
+.hbrand{display:flex;align-items:center;width:var(--nav);flex-shrink:0;justify-content:center}
+.hlogo{width:38px;height:38px;background:linear-gradient(135deg,var(--r4),var(--r6));border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 2px 8px rgba(200,68,96,.3)}
+.htitle-wrap{flex:1;display:flex;align-items:center;gap:10px;padding-left:16px}
+.htitle{font-size:18px;font-weight:800;color:var(--td);letter-spacing:-.4px}
+.sbadge{font-size:11px;color:#3a9e5a;background:#eafaf1;border:1px solid #b7e4c7;padding:2px 9px;border-radius:20px;font-weight:600;transition:opacity .4s}
+.sbadge.hidden{opacity:0}
+.hactions{display:flex;align-items:center;gap:10px;margin-left:auto}
+.body-wrap{flex:1;display:flex;overflow:hidden}
+
+/* NAV */
+.nav-side{width:var(--nav);background:#fff;border-right:1px solid var(--bl);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;flex-shrink:0}
+.nav-btn{width:48px;height:48px;border-radius:var(--r);border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:transparent;transition:all var(--t)}
+.nav-btn span:first-child{font-size:20px;line-height:1}
+.nav-btn .nav-lbl{font-size:8.5px;font-weight:700;color:var(--tx);letter-spacing:.2px;line-height:1;text-align:center;white-space:nowrap}
+.nav-btn:hover{background:var(--r1)}
+.nav-btn.active{background:var(--r2)}.nav-btn.active .nav-lbl{color:var(--r6)}
+.nav-spacer{flex:1}
+.nav-good-btn{width:48px;height:48px;border-radius:var(--r);border:none;cursor:pointer;background:linear-gradient(135deg,var(--r5),var(--r6));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 2px 8px rgba(200,68,96,.3);transition:all var(--t);margin:0 auto}
+.nav-good-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(200,68,96,.4)}
+.nav-good-btn span:first-child{font-size:18px;line-height:1}
+.nav-good-btn .nav-lbl{font-size:7px;font-weight:800;color:#fff;letter-spacing:.3px;text-align:center;line-height:1.2}
+
+/* VIEWS */
+.view{flex:1;overflow:hidden;display:none}.view.active{display:flex}
+#view-patients{flex-direction:row}
+.psidebar{width:var(--psw);background:var(--sidebar);border-right:1px solid var(--bl);display:flex;flex-direction:column;flex-shrink:0}
+.psidebar-head{padding:14px 14px 10px;border-bottom:1px solid var(--bl)}
+.tag-filter-bar{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;min-height:24px}
+.tag-pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;cursor:pointer;border:1px solid var(--bd);background:var(--card);color:var(--tm);transition:all var(--t);white-space:nowrap}
+.tag-pill:hover{border-color:var(--r4);color:var(--r5)}
+.tag-pill.active{background:var(--r5);color:#fff;border-color:var(--r5)}
+.tag-pill.add-tag{border-style:dashed;color:var(--tx)}.tag-pill.add-tag:hover{border-color:var(--r4);color:var(--r5)}
+.shead-title{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--tx);margin-bottom:8px}
+.srch-wrap{position:relative}
+.srch-wrap input{width:100%;padding:7px 10px 7px 30px;border:1px solid var(--bd);border-radius:var(--rsm);font-size:13px;font-family:inherit;background:#fff;color:var(--td);outline:none;transition:border-color var(--t)}
+.srch-wrap input:focus{border-color:var(--r4);box-shadow:0 0 0 3px var(--r2)}
+.srch-wrap input::placeholder{color:var(--tx)}
+.srch-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:11px;pointer-events:none;color:var(--tx)}
+.plist{flex:1;overflow-y:auto;padding:7px}
+.plist::-webkit-scrollbar{width:3px}.plist::-webkit-scrollbar-thumb{background:var(--r3);border-radius:2px}
+.pitem{display:flex;align-items:center;padding:9px 10px;border-radius:var(--rsm);cursor:pointer;margin-bottom:2px;transition:all var(--t);gap:9px;border:1px solid transparent}
+.pitem:hover{background:#fff;border-color:var(--bl);box-shadow:var(--ss)}
+.pitem.active{background:#fff;border-color:var(--r3);box-shadow:var(--ss)}
+.pitem.active .pname{color:var(--r6);font-weight:600}
+.pavatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--r2),var(--r3));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--r6);flex-shrink:0}
+.pitem.active .pavatar{background:linear-gradient(135deg,var(--r3),var(--r4));color:#fff}
+.pinfo{flex:1;min-width:0}
+.pname{font-size:13.5px;font-weight:500;color:var(--td);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pmeta{font-size:11px;color:var(--tx);margin-top:1px}
+.pbadge{font-size:10px;font-weight:700;background:var(--r1);color:var(--r5);padding:2px 7px;border-radius:20px;flex-shrink:0}
+.pitem.active .pbadge{background:var(--r2)}
+.pfooter{padding:11px;border-top:1px solid var(--bl)}
+.btn-add-full{width:100%;padding:10px;background:linear-gradient(135deg,var(--r5),var(--r6));color:#fff;border:none;border-radius:var(--rsm);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all var(--t);display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 10px rgba(200,68,96,.28)}
+.btn-add-full:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(200,68,96,.38)}
+.empty-plist{padding:20px 12px;text-align:center;color:var(--tx);font-size:13px;line-height:1.6}
+.pmain{flex:1;overflow-y:auto}
+.pmain::-webkit-scrollbar{width:5px}.pmain::-webkit-scrollbar-thumb{background:var(--r3);border-radius:3px}
+
+/* PATIENT DETAIL */
+.pd{padding:28px 34px;max-width:800px}
+.pd-hdr{display:flex;align-items:flex-start;gap:16px;margin-bottom:26px;padding-bottom:22px;border-bottom:1px solid var(--bl)}
+.pd-av{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--r3),var(--r5));display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 4px 16px rgba(200,68,96,.22)}
+.pd-info{flex:1}
+.pd-name{font-size:24px;font-weight:800;color:var(--td);letter-spacing:-.5px;margin-bottom:6px}
+.pd-tags-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:7px;align-items:center}
+.ptag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--r1);color:var(--r6)}
+.ptheme{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#f0f4ff;color:#4060b0}
+.pd-sum{font-size:13px;color:var(--tm);line-height:1.65;font-style:italic}
+.pd-act{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.sessions-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sec-h{font-size:14px;font-weight:700;color:var(--td)}.sec-c{font-size:12px;color:var(--tl);font-weight:400}
+.sess-list{display:flex;flex-direction:column;gap:9px;margin-bottom:36px}
+.scard{background:#fff;border:1px solid var(--bl);border-radius:var(--r);overflow:hidden;box-shadow:var(--ss);transition:box-shadow var(--t)}
+.scard:hover{box-shadow:var(--sm)}
+.scard-hd{display:flex;align-items:center;padding:12px 14px;cursor:pointer;gap:10px;border-bottom:1px solid transparent;transition:border-color var(--t)}
+.scard.open .scard-hd{border-bottom-color:var(--bl)}
+.scard-num{font-size:10px;font-weight:800;color:var(--r5);background:var(--r1);width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.scard-di{flex:1}
+.scard-date{font-size:14px;font-weight:600;color:var(--td)}
+.scard-meta{font-size:11px;color:var(--tx);margin-top:1px}
+.scard-prev{font-size:12px;color:var(--tl);max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scard.open .scard-prev{display:none}
+.scard-fin{font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;flex-shrink:0}
+.fin-pago{background:#eafaf1;color:#2e7d52;border:1px solid #b7e4c7}
+.fin-pend{background:#fff8e1;color:#8a6d00;border:1px solid #ffe082}
+.scard-chev{color:var(--tx);font-size:10px;transition:transform var(--t);flex-shrink:0}
+.scard.open .scard-chev{transform:rotate(90deg)}
+.scard-bd{display:none;padding:14px;flex-direction:column;gap:11px}
+.scard.open .scard-bd{display:flex}
+.scard-nv{font-size:14px;color:var(--td);line-height:1.75;white-space:pre-wrap;word-break:break-word;min-height:16px}
+.scard-ne{width:100%;min-height:120px;padding:10px 12px;border:1px solid var(--bd);border-radius:var(--rsm);font-size:14px;font-family:inherit;color:var(--td);line-height:1.75;resize:vertical;outline:none;display:none;transition:border-color var(--t)}
+.scard-ne:focus{border-color:var(--r4);box-shadow:0 0 0 3px var(--r2)}
+.scard-ft{display:flex;gap:6px;justify-content:flex-end;border-top:1px solid var(--bl);padding-top:9px}
+.empty-sess{text-align:center;padding:40px 24px;background:#fff;border:2px dashed var(--bd);border-radius:var(--rlg);color:var(--tl)}
+.empty-sess .ei{font-size:36px;margin-bottom:8px}
+.empty-sess .et{font-size:14px;font-weight:600;color:var(--tm);margin-bottom:4px}
+.empty-sess .es{font-size:12px;line-height:1.5}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:40px;text-align:center;gap:12px}
+.es-icon{font-size:56px;opacity:.4}
+.es-title{font-size:19px;font-weight:700;color:var(--tm)}
+.es-text{font-size:13px;color:var(--tl);max-width:280px;line-height:1.65}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:var(--rsm);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all var(--t);white-space:nowrap;font-family:inherit;line-height:1}
+.btn-p{background:var(--r5);color:#fff;box-shadow:0 2px 8px rgba(200,68,96,.25)}
+.btn-p:hover{background:var(--r6);transform:translateY(-1px)}
+.btn-g{background:transparent;color:var(--tm);border:1px solid var(--bd)}
+.btn-g:hover{background:var(--r1);border-color:var(--r3);color:var(--r5)}
+.btn-d{background:transparent;color:#c0392b;border:1px solid #facccc;font-size:12px}
+.btn-d:hover{background:#fff0f0}
+.bic{width:30px;height:30px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:var(--rsm);border:none;background:transparent;cursor:pointer;color:var(--tl);transition:all var(--t);font-size:15px}
+.bic:hover{background:var(--r1);color:var(--r5)}
+
+/* FINANCIAL */
+#view-financial{flex-direction:column;overflow-y:auto}
+#view-progress{flex-direction:column;overflow-y:auto}
+#view-desabafar{flex-direction:column;overflow-y:auto}
+.view-inner{padding:28px 34px;max-width:900px;width:100%}
+.view-title{font-size:22px;font-weight:800;color:var(--td);letter-spacing:-.4px;margin-bottom:6px}
+.view-sub{font-size:13px;color:var(--tl);margin-bottom:24px}
+.stat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:28px}
+.stat-card{background:#fff;border:1px solid var(--bl);border-radius:var(--r);padding:16px;box-shadow:var(--ss)}
+.stat-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--tx);margin-bottom:6px}
+.stat-val{font-size:24px;font-weight:800;color:var(--td)}
+.stat-val.green{color:#2e7d52}.stat-val.amber{color:#8a6d00}
+.fin-table-wrap{background:#fff;border:1px solid var(--bl);border-radius:var(--r);overflow:hidden;box-shadow:var(--ss);margin-bottom:24px}
+.fin-filters{padding:12px 16px;border-bottom:1px solid var(--bl);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sel{padding:6px 10px;border:1px solid var(--bd);border-radius:var(--rsm);font-size:12.5px;font-family:inherit;color:var(--td);background:var(--bg);outline:none;cursor:pointer}
+.sel:focus{border-color:var(--r4)}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--tx);padding:10px 14px;text-align:left;border-bottom:1px solid var(--bl)}
+td{font-size:13px;color:var(--td);padding:10px 14px;border-bottom:1px solid var(--bl)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--r1)}
+.fin-empty{padding:32px;text-align:center;color:var(--tx);font-size:13px}
+
+/* PROGRESS */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.chart-card{background:#fff;border:1px solid var(--bl);border-radius:var(--r);padding:18px;box-shadow:var(--ss)}
+.chart-title{font-size:13px;font-weight:700;color:var(--td);margin-bottom:14px}
+.chart-area{display:flex;justify-content:center;align-items:center;min-height:140px}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--tm)}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.full-chart{grid-column:1/-1}
+
+/* DESABAFAR */
+.desa-wrap{max-width:700px;width:100%}
+.desa-lead{font-size:14px;color:var(--tm);line-height:1.7;margin-bottom:16px}
+.desa-ta{width:100%;min-height:240px;padding:16px;border:1px solid var(--bd);border-radius:var(--r);font-size:14px;font-family:inherit;color:var(--td);line-height:1.75;resize:vertical;outline:none;background:#fff;transition:border-color var(--t)}
+.desa-ta:focus{border-color:var(--r4);box-shadow:0 0 0 3px var(--r2)}
+.desa-ta::placeholder{color:var(--tx)}
+.desa-foot{display:flex;justify-content:flex-end;margin-top:12px}
+
+/* MODALS */
+.overlay{position:fixed;inset:0;background:rgba(40,25,28,.38);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadein .15s ease}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.modal{background:#fff;border-radius:var(--rlg);padding:26px 28px;width:100%;max-width:480px;box-shadow:var(--sl);animation:slideup .18s ease}
+.modal-lg{max-width:580px}.modal-xl{max-width:680px}
+@keyframes slideup{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.mtitle{font-size:18px;font-weight:800;color:var(--td)}
+.mbody{display:flex;flex-direction:column;gap:14px}
+.mft{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--bl)}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.fl{font-size:11px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.6px}
+.fi,.fta{padding:9px 11px;border:1px solid var(--bd);border-radius:var(--rsm);font-size:13.5px;font-family:inherit;color:var(--td);background:var(--bg);outline:none;transition:border-color var(--t)}
+.fi:focus,.fta:focus{border-color:var(--r4);box-shadow:0 0 0 3px var(--r2);background:#fff}
+.fta{min-height:90px;resize:vertical;line-height:1.65}.fta.tall{min-height:140px}
+.ierr{border-color:var(--r5)!important}
+.tag-select{display:flex;flex-wrap:wrap;gap:6px}
+.tag-sel-pill{font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;cursor:pointer;border:1px solid var(--bd);background:#fff;color:var(--tm);transition:all var(--t);user-select:none}
+.tag-sel-pill:hover{border-color:var(--r4);color:var(--r5)}
+.tag-sel-pill.sel{background:var(--r5);color:#fff;border-color:var(--r5)}
+.tag-sel-pill.theme-sel.sel{background:#4060b0;border-color:#4060b0}
+.export-ta{width:100%;min-height:260px;padding:13px;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rsm);font-size:12px;font-family:'Courier New',monospace;color:var(--td);line-height:1.7;resize:vertical;outline:none}
+.moti-modal{max-width:420px;text-align:center}
+.moti-emoji{font-size:64px;margin-bottom:16px;animation:pulse 1.5s ease infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.moti-quote{font-size:16px;color:var(--td);line-height:1.75;font-style:italic;margin-bottom:6px;max-height:200px;overflow-y:auto}
+.moti-author{font-size:12px;color:var(--tx);margin-bottom:20px}
+.moti-btn{width:100%;padding:14px;border-radius:var(--rsm);border:none;cursor:pointer;font-size:16px;font-weight:700;font-family:inherit;background:linear-gradient(135deg,var(--r5),var(--r6));color:#fff;box-shadow:0 4px 14px rgba(200,68,96,.3);transition:all var(--t)}
+.moti-btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(200,68,96,.38)}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--td);color:#fff;padding:11px 16px;border-radius:var(--rsm);font-size:13px;font-weight:500;box-shadow:var(--sl);z-index:300;pointer-events:none;animation:toastin .18s ease}
+@keyframes toastin{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--r3);border-radius:3px}
+@media(max-width:700px){:root{--psw:200px;--nav:54px}.pd{padding:16px 14px}.view-inner{padding:16px 14px}.charts-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="ls-logo">🧠</div>
+  <div class="ls-text">Carregando...</div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="lc">
+    <div class="lc-logo">🧠</div>
+    <div class="lc-name">Mel Notes</div>
+    <div class="lc-sub">Gestão de Pacientes · Melissa Tropia</div>
+    <div class="lf">
+      <button class="lb lb-g" onclick="loginGoogle()">
+        <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
+        Entrar com Google
+      </button>
+    </div>
+    <div class="ldiv">ou</div>
+    <div class="lc-tabs">
+      <button class="lc-tab active" id="tab-entrar" onclick="switchTab('entrar')">Entrar</button>
+      <button class="lc-tab" id="tab-criar" onclick="switchTab('criar')">Criar conta</button>
+    </div>
+    <div id="form-entrar" class="lf">
+      <input class="lfi" type="email" id="li-email" placeholder="E-mail" autocomplete="email">
+      <input class="lfi" type="password" id="li-pass" placeholder="Senha" autocomplete="current-password">
+      <div class="lerr-box" id="login-err"></div>
+      <button class="lb lb-p" onclick="loginEmail()">Entrar</button>
+    </div>
+    <div id="form-criar" class="lf" style="display:none">
+      <input class="lfi" type="email" id="ri-email" placeholder="E-mail" autocomplete="email">
+      <input class="lfi" type="password" id="ri-pass" placeholder="Senha (mín. 6 caracteres)" autocomplete="new-password">
+      <div class="lerr-box" id="reg-err"></div>
+      <button class="lb lb-p" onclick="registrarEmail()">Criar conta</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header class="hdr">
+    <div class="hbrand"><div class="hlogo">🧠</div></div>
+    <div class="htitle-wrap">
+      <span class="htitle">Mel Notes</span>
+      <span class="sbadge hidden" id="saveBadge">✓ Salvo</span>
+    </div>
+    <div class="hactions">
+      <div class="user-wrap">
+        <button class="user-btn" id="userBtn" onclick="toggleUserMenu()" title="Perfil"></button>
+        <div class="udrop" id="udrop" style="display:none">
+          <div class="udrop-hd">
+            <div class="udrop-name" id="udrop-name">—</div>
+            <div class="udrop-email" id="udrop-email">—</div>
+          </div>
+          <div class="udrop-items">
+            <button class="udrop-item" onclick="exportarBackup();fecharUserMenu()">💾 Exportar backup (.json)</button>
+            <div class="udrop-item">
+              <label>📥 Restaurar backup<input type="file" accept=".json" onchange="importarBackup(this)"></label>
+            </div>
+            <div class="udrop-div"></div>
+            <button class="udrop-item udrop-sair" onclick="logout()">↪ Sair</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <div class="body-wrap">
+    <nav class="nav-side">
+      <button class="nav-btn active" id="nav-patients" onclick="navTo('patients')"><span>👥</span><span class="nav-lbl">Pacientes</span></button>
+      <button class="nav-btn" id="nav-financial" onclick="navTo('financial')"><span>💰</span><span class="nav-lbl">Finanças</span></button>
+      <button class="nav-btn" id="nav-progress" onclick="navTo('progress')"><span>📊</span><span class="nav-lbl">Progresso</span></button>
+      <button class="nav-btn" id="nav-desabafar" onclick="navTo('desabafar')"><span>😭</span><span class="nav-lbl">Desabafar</span></button>
+      <div class="nav-spacer"></div>
+      <button class="nav-good-btn" onclick="gerarPromptBoa()"><span>✨</span><span class="nav-lbl">Quão boa<br>eu sou?</span></button>
+    </nav>
+
+    <div id="view-patients" class="view active">
+      <div class="psidebar">
+        <div class="psidebar-head">
+          <div class="shead-title">Pacientes</div>
+          <div class="tag-filter-bar" id="tagFilterBar"></div>
+          <div class="srch-wrap">
+            <span class="srch-icon">🔍</span>
+            <input type="text" id="srch" placeholder="Buscar..." oninput="renderPList()" autocomplete="off">
+          </div>
+        </div>
+        <div class="plist" id="pList"></div>
+        <div class="pfooter"><button class="btn-add-full" onclick="openAddPac()">＋ Novo Paciente</button></div>
+      </div>
+      <div class="pmain" id="pmain"></div>
+    </div>
+
+    <div id="view-financial" class="view"><div class="view-inner" id="fin-inner"></div></div>
+    <div id="view-progress" class="view"><div class="view-inner" id="prog-inner"></div></div>
+    <div id="view-desabafar" class="view">
+      <div class="view-inner">
+        <div class="desa-wrap">
+          <div class="view-title">😭 Desabafar</div>
+          <p class="desa-lead">Este é o seu espaço seguro. Escreva tudo que está sentindo — depois, gere um prompt completo para levar para o Claude ou ChatGPT. A IA vai ter todo o contexto das suas sessões para conversar com você de verdade. 🌸</p>
+          <textarea class="desa-ta" id="desaTa" placeholder="Escreva aqui... O que você está sentindo hoje?"></textarea>
+          <div class="desa-foot"><button class="btn btn-p" onclick="gerarDesabafo()">✨ Gerar Desabafo para IA</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Novo Paciente -->
+<div id="m-pac" class="overlay" style="display:none" onclick="ocl(event,'m-pac')">
+  <div class="modal modal-lg">
+    <div class="mhd"><div class="mtitle">🤍 Novo Paciente</div><button class="bic" onclick="cm('m-pac')">✕</button></div>
+    <div class="mbody">
+      <div class="fg"><label class="fl">Nome *</label><input class="fi" id="fp-name" placeholder="Nome ou apelido" maxlength="100"></div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Idade</label><input class="fi" id="fp-age" type="number" placeholder="Ex: 32" min="1" max="120"></div>
+        <div class="fg"><label class="fl">Sexo</label>
+          <select class="fi" id="fp-sex"><option value="">Prefiro não dizer</option><option value="Feminino">Feminino</option><option value="Masculino">Masculino</option><option value="Não-binário">Não-binário</option></select>
+        </div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Início</label><input class="fi" id="fp-start" type="date"></div>
+        <div class="fg"><label class="fl">Clínica / Local</label><input class="fi" id="fp-clinic" placeholder="Ex: Consultório próprio" list="clinic-list"><datalist id="clinic-list"></datalist></div>
+      </div>
+      <div class="fg"><label class="fl">Etiquetas</label><div class="tag-select" id="fp-tags"></div></div>
+      <div class="fg"><label class="fl">Temas</label><div class="tag-select" id="fp-themes"></div></div>
+      <div class="fg"><label class="fl">Queixa / Resumo Inicial</label><textarea class="fta" id="fp-sum" placeholder="Breve descrição do caso…"></textarea></div>
+    </div>
+    <div class="mft">
+      <button class="btn btn-g" onclick="cm('m-pac')">Cancelar</button>
+      <button class="btn btn-p" onclick="savePac()">Adicionar Paciente</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Nova Sessão -->
+<div id="m-sess" class="overlay" style="display:none" onclick="ocl(event,'m-sess')">
+  <div class="modal modal-lg">
+    <div class="mhd"><div class="mtitle">📋 Nova Sessão</div><button class="bic" onclick="cm('m-sess')">✕</button></div>
+    <div class="mbody">
+      <div class="fr3">
+        <div class="fg"><label class="fl">Data *</label><input class="fi" id="fs-date" type="date"></div>
+        <div class="fg"><label class="fl">Horário</label><input class="fi" id="fs-time" type="time"></div>
+        <div class="fg"><label class="fl">Duração (min)</label><input class="fi" id="fs-dur" type="number" placeholder="50" min="1" max="480"></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Valor (R$)</label><input class="fi" id="fs-val" type="number" placeholder="0,00" step="0.01" min="0"></div>
+        <div class="fg"><label class="fl">Status</label>
+          <select class="fi" id="fs-status"><option value="pago">✅ Pago</option><option value="pendente">⏳ Pendente</option><option value="gratuito">🎁 Gratuito / Cortesia</option></select>
+        </div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Clínica / Local</label><input class="fi" id="fs-clinic" placeholder="Ex: Consultório" list="clinic-list2"><datalist id="clinic-list2"></datalist></div>
+        <div class="fg"><label class="fl">Plano / Pagamento</label><input class="fi" id="fs-plan" placeholder="Ex: Unimed, Pix…" list="plan-list"><datalist id="plan-list"></datalist></div>
+      </div>
+      <div class="fg"><label class="fl">Notas da Sessão</label><textarea class="fta tall" id="fs-notes" placeholder="Resumo da sessão, temas abordados, progressos…"></textarea></div>
+    </div>
+    <div class="mft">
+      <button class="btn btn-g" onclick="cm('m-sess')">Cancelar</button>
+      <button class="btn btn-p" onclick="saveSess()">Salvar Sessão</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Exportar IA -->
+<div id="m-export" class="overlay" style="display:none" onclick="ocl(event,'m-export')">
+  <div class="modal modal-xl">
+    <div class="mhd"><div class="mtitle" id="export-title">🤖 Exportar para IA</div><button class="bic" onclick="cm('m-export')">✕</button></div>
+    <div class="mbody">
+      <p style="font-size:13px;color:var(--tl);line-height:1.6">Copie o texto abaixo e cole no <strong>Claude</strong> ou <strong>ChatGPT</strong>.</p>
+      <textarea class="export-ta" id="exp-ta" readonly></textarea>
+    </div>
+    <div class="mft">
+      <button class="btn btn-g" onclick="cm('m-export')">Fechar</button>
+      <button class="btn btn-p" onclick="copyExport()">📋 Copiar Texto</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Adicionar Etiqueta -->
+<div id="m-addtag" class="overlay" style="display:none" onclick="ocl(event,'m-addtag')">
+  <div class="modal" style="max-width:360px">
+    <div class="mhd"><div class="mtitle" id="addtag-title">Nova Etiqueta</div><button class="bic" onclick="cm('m-addtag')">✕</button></div>
+    <div class="mbody">
+      <div class="fg"><label class="fl">Nome</label><input class="fi" id="addtag-val" placeholder="Ex: Particular, Convênio…"></div>
+    </div>
+    <div class="mft">
+      <button class="btn btn-g" onclick="cm('m-addtag')">Cancelar</button>
+      <button class="btn btn-p" id="addtag-btn">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Confirmar -->
+<div id="m-confirm" class="overlay" style="display:none" onclick="ocl(event,'m-confirm')">
+  <div class="modal" style="max-width:360px">
+    <div class="mhd"><div class="mtitle" id="conf-title">Confirmar</div><button class="bic" onclick="cm('m-confirm')">✕</button></div>
+    <p id="conf-txt" style="font-size:13.5px;color:var(--tm);line-height:1.65;margin-bottom:4px"></p>
+    <div class="mft">
+      <button class="btn btn-g" onclick="cm('m-confirm')">Cancelar</button>
+      <button class="btn btn-d" id="conf-btn">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Motivacional -->
+<div id="m-moti" class="overlay" style="display:none">
+  <div class="modal moti-modal">
+    <div class="moti-emoji" id="moti-emoji">🌸</div>
+    <div class="moti-quote" id="moti-quote"></div>
+    <div class="moti-author" id="moti-author"></div>
+    <button class="moti-btn" onclick="cm('m-moti')">Obrigada! 🌸</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════
+   FIREBASE
+═══════════════════════════════ */
+const firebaseConfig = {
+  apiKey: "AIzaSyB5DSLhkIXUbIwxkLo0hfjDHXyAN81QNyI",
+  authDomain: "mel-notes-online.firebaseapp.com",
+  projectId: "mel-notes-online",
+  storageBucket: "mel-notes-online.firebasestorage.app",
+  messagingSenderId: "1054196926277",
+  appId: "1:1054196926277:web:02783b663eaebddb93a02c"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUser = null;
+let saveTimer = null;
+
+/* ═══════════════════════════════
+   AUTH
+═══════════════════════════════ */
+function switchTab(tab) {
+  document.getElementById('tab-entrar').classList.toggle('active', tab === 'entrar');
+  document.getElementById('tab-criar').classList.toggle('active', tab === 'criar');
+  document.getElementById('form-entrar').style.display = tab === 'entrar' ? 'flex' : 'none';
+  document.getElementById('form-criar').style.display = tab === 'criar' ? 'flex' : 'none';
+}
+
+function traduzirErroAuth(code) {
+  const erros = {
+    'auth/invalid-email': 'E-mail inválido.',
+    'auth/user-not-found': 'Usuário não encontrado.',
+    'auth/wrong-password': 'Senha incorreta.',
+    'auth/invalid-credential': 'E-mail ou senha incorretos.',
+    'auth/email-already-in-use': 'E-mail já cadastrado.',
+    'auth/weak-password': 'Senha muito fraca (mínimo 6 caracteres).',
+    'auth/too-many-requests': 'Muitas tentativas. Tente novamente em alguns minutos.',
+    'auth/network-request-failed': 'Erro de conexão. Verifique sua internet.',
+    'auth/popup-closed-by-user': 'Login cancelado.',
+  };
+  return erros[code] || 'Erro ao autenticar. Tente novamente.';
+}
+
+function mostrarErroLogin(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function limparErros() {
+  ['login-err', 'reg-err'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('show');
+  });
+}
+
+async function loginGoogle() {
+  limparErros();
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    await auth.signInWithPopup(provider);
+  } catch (e) {
+    mostrarErroLogin('login-err', traduzirErroAuth(e.code));
+  }
+}
+
+async function loginEmail() {
+  limparErros();
+  const email = document.getElementById('li-email').value.trim();
+  const pass = document.getElementById('li-pass').value;
+  if (!email || !pass) { mostrarErroLogin('login-err', 'Preencha e-mail e senha.'); return; }
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch (e) {
+    mostrarErroLogin('login-err', traduzirErroAuth(e.code));
+  }
+}
+
+async function registrarEmail() {
+  limparErros();
+  const email = document.getElementById('ri-email').value.trim();
+  const pass = document.getElementById('ri-pass').value;
+  if (!email || !pass) { mostrarErroLogin('reg-err', 'Preencha e-mail e senha.'); return; }
+  try {
+    await auth.createUserWithEmailAndPassword(email, pass);
+  } catch (e) {
+    mostrarErroLogin('reg-err', traduzirErroAuth(e.code));
+  }
+}
+
+async function logout() {
+  fecharUserMenu();
+  await auth.signOut();
+}
+
+/* ═══════════════════════════════
+   FIRESTORE
+═══════════════════════════════ */
+async function carregarDados() {
+  try {
+    const doc = await db.collection('users').doc(currentUser.uid).get();
+    if (doc.exists && doc.data().data) {
+      S = normalizar(doc.data().data);
+    } else {
+      S = dadosVazios();
+    }
+  } catch (e) {
+    console.error('Erro ao carregar dados:', e);
+    S = dadosVazios();
+  }
+}
+
+function persist() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    if (!currentUser) return;
+    try {
+      const payload = JSON.parse(JSON.stringify(S));
+      delete payload.selId;
+      await db.collection('users').doc(currentUser.uid).set({ data: payload });
+      piscar();
+    } catch (e) {
+      console.error('Erro ao salvar:', e);
+      toast('⚠️ Erro ao salvar. Verifique sua conexão.');
+    }
+  }, 1500);
+}
+
+/* ═══════════════════════════════
+   USER MENU
+═══════════════════════════════ */
+function atualizarUserUI(user) {
+  const btn = document.getElementById('userBtn');
+  const nome = user.displayName || user.email.split('@')[0];
+  document.getElementById('udrop-name').textContent = user.displayName || nome;
+  document.getElementById('udrop-email').textContent = user.email;
+  if (user.photoURL) {
+    btn.innerHTML = `<img src="${user.photoURL}" alt="">`;
+  } else {
+    const ini = nome.trim().split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
+    btn.textContent = ini || '👤';
+  }
+}
+
+function toggleUserMenu() {
+  const d = document.getElementById('udrop');
+  d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+
+function fecharUserMenu() {
+  document.getElementById('udrop').style.display = 'none';
+}
+
+document.addEventListener('click', e => {
+  if (!document.getElementById('udrop')) return;
+  const wrap = document.querySelector('.user-wrap');
+  if (wrap && !wrap.contains(e.target)) fecharUserMenu();
+});
+
+/* ═══════════════════════════════
+   BACKUP
+═══════════════════════════════ */
+function exportarBackup() {
+  const dados = JSON.parse(JSON.stringify(S));
+  delete dados.selId;
+  const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mel-notes-backup-${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('💾 Backup exportado!');
+}
+
+function importarBackup(input) {
+  fecharUserMenu();
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const dados = JSON.parse(e.target.result);
+      const novo = normalizar(dados);
+      confirm_('Restaurar Backup', `Isso vai <strong>substituir todos os dados atuais</strong> pelo backup. Tem certeza?`, async () => {
+        S = novo;
+        await db.collection('users').doc(currentUser.uid).set({ data: JSON.parse(JSON.stringify(S)) });
+        piscar();
+        render();
+        toast('✅ Backup restaurado!');
+      });
+    } catch {
+      toast('⚠️ Arquivo inválido.');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+/* ═══════════════════════════════
+   FRASES MOTIVACIONAIS
+═══════════════════════════════ */
+const FRASES = [
+["Porque sou eu que conheço os planos que tenho para você, planos de fazê-la prosperar e não de causar dano, planos de dar esperança e um futuro.","Jeremias 29:11"],
+["Tudo posso naquele que me fortalece.","Filipenses 4:13"],
+["O Senhor é o meu pastor; nada me faltará.","Salmos 23:1"],
+["Seja forte e corajosa! Não fique desanimada, pois o Senhor, o seu Deus, estará com você por onde você andar.","Josué 1:9"],
+["Confie no Senhor de todo o seu coração e não se apoie no seu próprio entendimento.","Provérbios 3:5"],
+["Deleite-se no Senhor, e ele atenderá os desejos do seu coração.","Salmos 37:4"],
+["Não se preocupe com nada, mas em tudo, por meio da oração e súplica, e com ação de graças, apresente seus pedidos a Deus.","Filipenses 4:6"],
+["O Senhor dá força ao seu povo; o Senhor abençoa o seu povo com paz.","Salmos 29:11"],
+["Aguarda o Senhor; sê forte e corajosa; aguarda o Senhor!","Salmos 27:14"],
+["Porque Deus não nos deu espírito de covardia, mas de poder, de amor e de equilíbrio.","2 Timóteo 1:7"],
+["O amor é paciente, o amor é bondoso. Não inveja, não se vangloria, não se orgulha.","1 Coríntios 13:4"],
+["Tudo tem o seu tempo determinado; há tempo para cada propósito debaixo do céu.","Eclesiastes 3:1"],
+["Deus é o nosso refúgio e força, socorro bem-presente na angústia.","Salmos 46:1"],
+["Mas os que esperam no Senhor renovarão as suas forças. Voareão alto como águias.","Isaías 40:31"],
+["Lança o teu fardo sobre o Senhor, e ele te susterá; jamais permitirá que o justo seja abalado.","Salmos 55:22"],
+["A mulher virtuosa, quem a achará? O seu valor muito excede o de rubis.","Provérbios 31:10"],
+["Ela é dotada de força e dignidade; ri-se do futuro.","Provérbios 31:25"],
+["Não nos cansemos de fazer o bem, porque a seu tempo ceifaremos, se não desanimarmos.","Gálatas 6:9"],
+["O coração alegre é um bom remédio, mas o espírito abatido seca os ossos.","Provérbios 17:22"],
+["A paz de Deus, que excede todo o entendimento, guardará os seus corações e as suas mentes em Cristo Jesus.","Filipenses 4:7"],
+["O homem que conhece o 'porquê' de sua existência suportará quase qualquer 'como'.","Viktor Frankl"],
+["Quando não podemos mudar a situação, somos desafiados a mudar a nós mesmos.","Viktor Frankl"],
+["Entre estímulo e resposta há um espaço. Nesse espaço está nosso poder de escolher nossa resposta.","Viktor Frankl"],
+["O sofrimento deixa de ser sofrimento em certo sentido no momento em que encontra um significado.","Viktor Frankl"],
+["A tarefa do terapeuta é criar as condições para o crescimento, não fazer o crescimento acontecer.","Carl Rogers"],
+["Quem olha para fora sonha; quem olha para dentro acorda.","Carl Jung"],
+["A empatia é ver com os olhos de outro, ouvir com os ouvidos de outro e sentir com o coração de outro.","Alfred Adler"],
+["Vulnerabilidade é a terra natal da inovação, criatividade e mudança.","Brené Brown"],
+["A coragem é poder contar sua história com o coração aberto.","Brené Brown"],
+["A aceitação incondicional liberta as pessoas para crescer.","Carl Rogers"],
+["A terapia não consiste em fazer as pessoas felizes, mas em tornarem-se mais honestas consigo mesmas.","Irvin Yalom"],
+["O terapeuta é curado pelo paciente tanto quanto o paciente pelo terapeuta.","Sandor Ferenczi"],
+["O que não nos mata nos torna mais fortes.","Friedrich Nietzsche"],
+["A mais profunda necessidade do ser humano é a de ser compreendido.","Ralph Nichols"],
+["Seja a mudança que você deseja ver no mundo.","Mahatma Gandhi"],
+["Você é mais corajosa do que acredita, mais forte do que parece e mais inteligente do que pensa.","A.A. Milne"],
+["Cada palavra que você disse hoje foi uma semente plantada numa alma que precisava florescer.",null],
+["Você não apenas ouviu histórias hoje — você ajudou a reescrever destinos.",null],
+["Neste consultório, acontecem milagres invisíveis que nenhuma câmera poderia capturar.",null],
+["Você trouxe luz para alguém que estava caminhando no escuro sem saber que havia saída.",null],
+["Ser psicóloga é carregar o peso do mundo com graça e transformá-lo em cura.",null],
+["Cada sessão que você conduz é um farol de esperança para alguém que talvez nunca te conte o impacto que teve.",null],
+["Você escolheu a profissão mais corajosa do mundo: olhar para dentro das pessoas quando elas mesmas têm medo de olhar.",null],
+["O que você faz é invisível para o mundo mas imensurável para cada pessoa que passa pela sua sala.",null],
+["Sua presença, sua escuta, sua compaixão — esses são os maiores instrumentos de cura que existem.",null],
+["Você planta esperança em solo árido. E ela germina. Sempre germina.",null],
+["Há pessoas que dormem melhor à noite porque você existiu no dia delas.",null],
+["Você não cura apenas mentes — você reconecta pessoas com sua própria humanidade.",null],
+["Ser escutada com atenção plena é um dos maiores presentes que se pode dar a alguém. Você dá isso todos os dias.",null],
+["Sua empatia é um superpoder raro e valiosíssimo. Ela transforma.",null],
+["O mundo precisa de você. Cada paciente que você atende precisa de você.",null],
+["Você não é apenas uma profissional — você é um ponto de virada na história de vida de alguém.",null],
+["A coragem que você inspira nos outros começa na coragem que você tem de mostrar-se humana e presente.",null],
+["Há uma diferença enorme entre o antes e o depois de uma sessão com você.",null],
+["Você coleta histórias que jamais serão publicadas mas que são as mais importantes do mundo.",null],
+["Cada lágrima que caiu neste espaço fez parte de um processo de libertação que você facilitou.",null],
+["Você não resolve problemas — você devolve às pessoas a capacidade de resolverem os próprios.",null],
+["Sua escuta ativa é uma forma de amor. Talvez a mais pura.",null],
+["Você é guardiã de segredos sagrados e de vulnerabilidades preciosas. Que honra.",null],
+["Você transforma confusão em clareza. Medo em coragem. Silêncio em voz.",null],
+["Há uma versão melhor de alguém caminhando pelo mundo porque você existiu na vida dessa pessoa.",null],
+["O maior ato de amor é ver o outro em sua totalidade — falhas e tudo — e continuar presente. Isso é o que você faz.",null],
+["Curar é uma arte, e você a pratica com maestria todos os dias.",null],
+["A saúde mental que você promove hoje é um legado que atravessa gerações.",null],
+["Sua voz é instrumento de cura. Suas perguntas são pontes para o autoconhecimento.",null],
+["Você acredita nas pessoas quando elas não conseguem acreditar em si mesmas.",null],
+["Estar presente com o outro em sua dor mais profunda é um ato de coragem imenso. Você faz isso.",null],
+["Você não apenas ouve — você testemunha. E ser testemunhado é profundamente transformador.",null],
+["Você traz à tona o melhor das pessoas — mesmo quando elas ainda não sabem que esse melhor existe.",null],
+["Você não precisa salvar o mundo de uma vez — você salva um coração de cada vez, e isso é suficiente.",null],
+["Curar é a coisa mais profundamente humana que existe. E você escolheu esse caminho.",null],
+["Você não precisa ter todas as respostas. Às vezes, estar presente é a resposta.",null],
+["Você é daquelas profissionais que as pessoas lembram como ponto de virada. Que legado.",null],
+["Cada pessoa que passa pela sua vida profissional leva um pedaço da sua generosidade consigo.",null],
+["Toda vez que você escuta, você diz: você importa. E essa mensagem muda vidas.",null],
+["Você importa muito mais do que imagina para muito mais pessoas do que sabe.",null],
+["Seu trabalho de hoje é o legado de amanhã.",null],
+["Você foi chamada para curar. E você atende essa chamada todos os dias.",null],
+["Você está fazendo diferença. Hoje. Agora. Sempre.",null],
+];
+
+const MOTI_EMOJIS = ['🌸','🌺','✨','🌟','💫','🦋','🌻','💐','🌹','💗','💝','🌷'];
+
+function motivar() {
+  const idx = Math.floor(Math.random() * FRASES.length);
+  const [quote, author] = FRASES[idx];
+  document.getElementById('moti-emoji').textContent = MOTI_EMOJIS[Math.floor(Math.random()*MOTI_EMOJIS.length)];
+  document.getElementById('moti-quote').textContent = `"${quote}"`;
+  document.getElementById('moti-author').textContent = author ? `— ${author}` : '';
+  document.getElementById('m-moti').style.display = 'flex';
+}
+
+/* ═══════════════════════════════
+   STATE
+═══════════════════════════════ */
+let S = dadosVazios();
+let activeTag = null;
+
+function dadosVazios() {
+  return {
+    patients: [],
+    tags: ['Unimed','Particular','Pessoal','Online'],
+    themes: ['Ansiedade','Depressão','Relacionamentos','Autoestima','Trauma','Luto','Família','Trabalho','Ideação Suicida','Fobia'],
+    clinics: [],
+    plans: [],
+    selId: null
+  };
+}
+
+function normalizar(d) {
+  if (!d || typeof d !== 'object') return dadosVazios();
+  if (!Array.isArray(d.patients)) d.patients = [];
+  if (!Array.isArray(d.tags)) d.tags = ['Unimed','Particular','Pessoal','Online'];
+  if (!Array.isArray(d.themes)) d.themes = ['Ansiedade','Depressão','Relacionamentos','Autoestima','Trauma','Luto','Família','Trabalho','Ideação Suicida','Fobia'];
+  if (!Array.isArray(d.clinics)) d.clinics = [];
+  if (!Array.isArray(d.plans)) d.plans = [];
+  d.patients.forEach(p => {
+    if (!Array.isArray(p.sessions)) p.sessions = [];
+    if (!Array.isArray(p.tags)) p.tags = [];
+    if (!Array.isArray(p.themes)) p.themes = [];
+    if (!p.sex) p.sex = '';
+    p.sessions.forEach(s => {
+      if (!s.value) s.value = '';
+      if (!s.status) s.status = 'pago';
+      if (!s.clinic) s.clinic = '';
+      if (!s.plan) s.plan = '';
+    });
+  });
+  d.selId = null;
+  return d;
+}
+
+function piscar() {
+  const b = document.getElementById('saveBadge');
+  if (!b) return;
+  b.classList.remove('hidden');
+  clearTimeout(piscar._t);
+  piscar._t = setTimeout(() => b.classList.add('hidden'), 2200);
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function fmt(d) { if (!d) return ''; const [y,m,day] = d.split('-'); return `${day}/${m}/${y}`; }
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function nowTime() { const t = new Date(); return `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`; }
+function inits(n) { return n.trim().split(' ').slice(0,2).map(w => w[0].toUpperCase()).join(''); }
+function pac(id) { return S.patients.find(p => p.id === id); }
+function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg) { document.querySelectorAll('.toast').forEach(e => e.remove()); const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg; document.body.appendChild(el); setTimeout(() => el.remove(), 2800); }
+function fmtMoney(v) { if (!v && v !== 0) return '—'; return 'R$ ' + parseFloat(v).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
+
+/* ═══════════════════════════════
+   NAVIGATION
+═══════════════════════════════ */
+let currentView = 'patients';
+function navTo(v) {
+  currentView = v;
+  ['patients','financial','progress','desabafar'].forEach(n => {
+    document.getElementById(`view-${n}`).classList.toggle('active', n === v);
+    document.getElementById(`nav-${n}`)?.classList.toggle('active', n === v);
+  });
+  if (v === 'financial') renderFinancial();
+  if (v === 'progress') renderProgress();
+}
+
+/* ═══════════════════════════════
+   RENDER PATIENTS
+═══════════════════════════════ */
+function render() { renderTagFilterBar(); renderPList(); renderPMain(); }
+
+function renderTagFilterBar() {
+  const bar = document.getElementById('tagFilterBar');
+  if (!bar) return;
+  bar.innerHTML = S.tags.map(t => `<span class="tag-pill ${activeTag===t?'active':''}" onclick="filterTag('${esc(t)}')">${esc(t)}</span>`).join('') +
+    `<span class="tag-pill add-tag" onclick="openAddTag('tag')">＋</span>`;
+}
+
+function filterTag(t) { activeTag = activeTag === t ? null : t; renderTagFilterBar(); renderPList(); }
+
+function renderPList() {
+  const q = (document.getElementById('srch')?.value || '').toLowerCase();
+  const el = document.getElementById('pList');
+  let list = S.patients;
+  if (activeTag) list = list.filter(p => p.tags.includes(activeTag));
+  if (q) list = list.filter(p => p.name.toLowerCase().includes(q));
+  if (!list.length) { el.innerHTML = `<div class="empty-plist">${!S.patients.length ? 'Nenhum paciente ainda.<br><strong>Clique em Novo Paciente</strong>' : 'Nenhum resultado.'}</div>`; return; }
+  el.innerHTML = list.map(p => `
+    <div class="pitem ${p.id===S.selId?'active':''}" onclick="selPac('${p.id}')">
+      <div class="pavatar">${inits(p.name)}</div>
+      <div class="pinfo">
+        <div class="pname">${esc(p.name)}</div>
+        <div class="pmeta">${p.age?p.age+' anos':''} ${p.sex?'· '+p.sex:''}</div>
+      </div>
+      <span class="pbadge">${p.sessions.length}</span>
+    </div>`).join('');
+}
+
+function renderPMain() {
+  const main = document.getElementById('pmain');
+  if (!S.selId) { main.innerHTML = `<div class="empty-state"><div class="es-icon">🧠</div><div class="es-title">Bem-vinda, Melissa!</div><div class="es-text">Selecione um paciente ou crie um novo para começar.</div></div>`; return; }
+  const p = pac(S.selId);
+  if (!p) { S.selId = null; renderPMain(); return; }
+  const sessions = [...p.sessions].sort((a,b) => (b.date+(b.time||'00:00')).localeCompare(a.date+(a.time||'00:00')));
+  main.innerHTML = `
+    <div class="pd">
+      <div class="pd-hdr">
+        <div class="pd-av">${inits(p.name)}</div>
+        <div class="pd-info">
+          <div class="pd-name">${esc(p.name)}</div>
+          <div class="pd-tags-row">
+            ${p.age?`<span class="ptag">${p.age} anos</span>`:''}
+            ${p.sex?`<span class="ptag">${esc(p.sex)}</span>`:''}
+            ${p.startDate?`<span style="font-size:11px;color:var(--tx)">desde ${fmt(p.startDate)}</span>`:''}
+            ${(p.tags||[]).map(t=>`<span class="ptag">${esc(t)}</span>`).join('')}
+            ${(p.themes||[]).map(t=>`<span class="ptheme">${esc(t)}</span>`).join('')}
+          </div>
+          ${p.summary?`<div class="pd-sum">${esc(p.summary)}</div>`:''}
+        </div>
+        <div class="pd-act">
+          <button class="btn btn-g" style="font-size:12px" onclick="exportarIA('${p.id}')">🤖 Exportar IA</button>
+          <button class="bic" onclick="askDelPac('${p.id}')" style="color:#c0392b" title="Excluir paciente">🗑</button>
+        </div>
+      </div>
+      <div class="sessions-bar">
+        <div><span class="sec-h">Sessões</span><span class="sec-c"> · ${sessions.length} registro${sessions.length!==1?'s':''}</span></div>
+        <button class="btn btn-p" onclick="openAddSess('${p.id}')">＋ Nova Sessão</button>
+      </div>
+      <div class="sess-list">
+        ${!sessions.length ? `<div class="empty-sess"><div class="ei">📋</div><div class="et">Nenhuma sessão ainda</div><div class="es">Clique em <strong>+ Nova Sessão</strong></div></div>` :
+          sessions.map((s,i) => renderSCard(p,s,sessions.length-i)).join('')}
+      </div>
+    </div>`;
+}
+
+function renderSCard(p, s, num) {
+  const prev = s.notes ? s.notes.replace(/\n/g,' ').slice(0,60)+(s.notes.length>60?'…':'') : '—';
+  const meta = [s.time?s.time+'h':null, s.dur?s.dur+' min':null, s.clinic?s.clinic:null].filter(Boolean).join(' · ');
+  const finBadge = s.value && parseFloat(s.value) > 0
+    ? `<span class="scard-fin ${s.status==='pendente'?'fin-pend':'fin-pago'}">${fmtMoney(s.value)} ${s.status==='pendente'?'⏳':'✅'}</span>`
+    : s.status === 'gratuito' ? `<span class="scard-fin" style="background:#f0f4ff;color:#4060b0;border:1px solid #c0d0f0">🎁 Gratuito</span>` : '';
+  return `<div class="scard" id="sc-${s.id}">
+    <div class="scard-hd" onclick="toggleSC('${s.id}')">
+      <div class="scard-num">${num}</div>
+      <div class="scard-di"><div class="scard-date">${fmt(s.date)}</div><div class="scard-meta">${meta||'&nbsp;'}</div></div>
+      <div class="scard-prev">${esc(prev)}</div>
+      ${finBadge}
+      <span class="scard-chev">▶</span>
+    </div>
+    <div class="scard-bd">
+      <div class="scard-nv" id="sv-${s.id}">${esc(s.notes||'').replace(/\n/g,'<br>')}</div>
+      <textarea class="scard-ne" id="se-${s.id}">${esc(s.notes||'')}</textarea>
+      <div class="scard-ft">
+        <button class="btn btn-g" id="eb-${s.id}" onclick="editSC('${p.id}','${s.id}')" style="font-size:12px">✏️ Editar</button>
+        <button class="btn btn-g" id="sb-${s.id}" style="display:none;font-size:12px" onclick="saveSE('${p.id}','${s.id}')">✓ Salvar</button>
+        <button class="btn btn-g" id="cb-${s.id}" style="display:none;font-size:12px" onclick="cancelSE('${s.id}')">✕</button>
+        <button class="btn btn-d" onclick="askDelSess('${p.id}','${s.id}')">🗑 Excluir</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function selPac(id) { S.selId = id; renderPList(); renderPMain(); }
+function toggleSC(sid) { document.getElementById(`sc-${sid}`)?.classList.toggle('open'); }
+function editSC(pid, sid) { document.getElementById(`sv-${sid}`).style.display='none'; document.getElementById(`se-${sid}`).style.display='block'; document.getElementById(`eb-${sid}`).style.display='none'; document.getElementById(`sb-${sid}`).style.display='inline-flex'; document.getElementById(`cb-${sid}`).style.display='inline-flex'; document.getElementById(`se-${sid}`).focus(); }
+function cancelSE(sid) { document.getElementById(`sv-${sid}`).style.display=''; document.getElementById(`se-${sid}`).style.display='none'; document.getElementById(`eb-${sid}`).style.display='inline-flex'; document.getElementById(`sb-${sid}`).style.display='none'; document.getElementById(`cb-${sid}`).style.display='none'; }
+function saveSE(pid, sid) { const notes = document.getElementById(`se-${sid}`).value; const s = pac(pid)?.sessions.find(x=>x.id===sid); if (s) s.notes = notes; persist(); cancelSE(sid); const sv = document.getElementById(`sv-${sid}`); if (sv) sv.innerHTML = esc(notes).replace(/\n/g,'<br>'); toast('✅ Notas atualizadas!'); }
+
+/* ═══════════════════════════════
+   PATIENT CRUD
+═══════════════════════════════ */
+function openAddPac() {
+  ['fp-name','fp-age','fp-sum','fp-clinic'].forEach(id => { const e = document.getElementById(id); if (e) { e.value=''; e.classList.remove('ierr'); } });
+  document.getElementById('fp-sex').value = '';
+  document.getElementById('fp-start').value = todayStr();
+  renderTagPills('fp-tags', S.tags, []);
+  renderTagPills('fp-themes', S.themes, [], true);
+  populateClinicList();
+  om('m-pac');
+  setTimeout(() => document.getElementById('fp-name').focus(), 120);
+}
+
+function renderTagPills(containerId, options, selected, isTheme=false) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  c.innerHTML = options.map(t => `<span class="tag-sel-pill ${isTheme?'theme-sel':''} ${selected.includes(t)?'sel':''}" onclick="togglePill(this)">${esc(t)}</span>`).join('') +
+    `<span class="tag-sel-pill" style="border-style:dashed;color:var(--tx);font-size:11px" onclick="openAddTag('${isTheme?'theme':'tag'}','${containerId}')">＋ Nova</span>`;
+}
+
+function togglePill(el) { el.classList.toggle('sel'); }
+
+function getSelectedPills(containerId) {
+  return [...document.querySelectorAll(`#${containerId} .tag-sel-pill.sel`)].map(e => e.textContent);
+}
+
+function savePac() {
+  const name = document.getElementById('fp-name').value.trim();
+  if (!name) { document.getElementById('fp-name').classList.add('ierr'); document.getElementById('fp-name').focus(); return; }
+  const p = { id:uid(), name, age:document.getElementById('fp-age').value||'', sex:document.getElementById('fp-sex').value, startDate:document.getElementById('fp-start').value||todayStr(), clinic:document.getElementById('fp-clinic').value.trim(), summary:document.getElementById('fp-sum').value.trim(), tags:getSelectedPills('fp-tags'), themes:getSelectedPills('fp-themes'), sessions:[], createdAt:new Date().toISOString() };
+  S.patients.push(p);
+  S.selId = p.id;
+  addClinicIfNew(p.clinic);
+  persist(); cm('m-pac'); render();
+  toast(`✅ ${name} adicionado(a)!`);
+}
+
+function askDelPac(pid) {
+  const p = pac(pid);
+  confirm_('Excluir Paciente', `Excluir <strong>${esc(p.name)}</strong> e ${p.sessions.length} sessão(ões)? Não pode ser desfeito.`, () => {
+    const n = p.name;
+    S.patients = S.patients.filter(x => x.id !== pid);
+    if (S.selId === pid) S.selId = null;
+    persist(); render();
+    toast(`🗑 ${n} excluído(a).`);
+  });
+}
+
+/* ═══════════════════════════════
+   SESSION CRUD
+═══════════════════════════════ */
+let _pid = null;
+function openAddSess(pid) {
+  _pid = pid;
+  const p = pac(pid);
+  document.getElementById('fs-date').value = todayStr();
+  document.getElementById('fs-time').value = nowTime();
+  document.getElementById('fs-dur').value = '50';
+  document.getElementById('fs-notes').value = '';
+  document.getElementById('fs-val').value = '';
+  document.getElementById('fs-status').value = 'pago';
+  document.getElementById('fs-clinic').value = p?.clinic || '';
+  document.getElementById('fs-plan').value = '';
+  populateClinicList();
+  om('m-sess');
+  setTimeout(() => document.getElementById('fs-notes').focus(), 120);
+}
+
+function saveSess() {
+  const date = document.getElementById('fs-date').value;
+  if (!date) { document.getElementById('fs-date').classList.add('ierr'); return; }
+  const p = pac(_pid); if (!p) return;
+  const clinic = document.getElementById('fs-clinic').value.trim();
+  const plan = document.getElementById('fs-plan').value.trim();
+  const s = { id:uid(), date, time:document.getElementById('fs-time').value, dur:document.getElementById('fs-dur').value, notes:document.getElementById('fs-notes').value.trim(), value:document.getElementById('fs-val').value, status:document.getElementById('fs-status').value, clinic, plan, createdAt:new Date().toISOString() };
+  p.sessions.push(s);
+  addClinicIfNew(clinic);
+  addPlanIfNew(plan);
+  persist(); cm('m-sess'); renderPMain(); renderPList();
+  motivar();
+}
+
+function askDelSess(pid, sid) {
+  confirm_('Excluir Sessão', 'Excluir esta sessão? Não pode ser desfeito.', () => {
+    const p = pac(pid); if (p) p.sessions = p.sessions.filter(x => x.id !== sid);
+    persist(); renderPMain(); renderPList();
+    toast('🗑 Sessão excluída.');
+  });
+}
+
+function addClinicIfNew(c) { if (c && !S.clinics.includes(c)) { S.clinics.push(c); populateClinicList(); } }
+function addPlanIfNew(p) { if (p && !S.plans.includes(p)) S.plans.push(p); }
+
+function populateClinicList() {
+  ['clinic-list','clinic-list2'].forEach(id => { const dl = document.getElementById(id); if (dl) dl.innerHTML = S.clinics.map(c=>`<option value="${esc(c)}">`).join(''); });
+  const pl = document.getElementById('plan-list');
+  if (pl) pl.innerHTML = [...S.plans,...S.tags].filter((v,i,a)=>a.indexOf(v)===i).map(p=>`<option value="${esc(p)}">`).join('');
+}
+
+/* ═══════════════════════════════
+   TAGS & THEMES
+═══════════════════════════════ */
+let _tagCtx = { type:'tag', container:null };
+function openAddTag(type, container) {
+  _tagCtx = { type, container: container||null };
+  document.getElementById('addtag-title').textContent = type==='theme' ? 'Novo Tema' : 'Nova Etiqueta';
+  document.getElementById('addtag-val').value = '';
+  document.getElementById('addtag-btn').onclick = saveNewTag;
+  om('m-addtag');
+  setTimeout(() => document.getElementById('addtag-val').focus(), 120);
+}
+function saveNewTag() {
+  const val = document.getElementById('addtag-val').value.trim();
+  if (!val) return;
+  if (_tagCtx.type==='theme') { if (!S.themes.includes(val)) S.themes.push(val); }
+  else { if (!S.tags.includes(val)) S.tags.push(val); }
+  persist(); cm('m-addtag');
+  if (_tagCtx.container) {
+    const isTheme = _tagCtx.type === 'theme';
+    const arr = isTheme ? S.themes : S.tags;
+    const cur = getSelectedPills(_tagCtx.container);
+    renderTagPills(_tagCtx.container, arr, [...cur, val], isTheme);
+  }
+  renderTagFilterBar();
+  toast(`✅ "${val}" adicionado!`);
+}
+
+/* ═══════════════════════════════
+   EXPORT / IA
+═══════════════════════════════ */
+function exportarIA(pid) {
+  const p = pac(pid);
+  const sess = [...p.sessions].sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')));
+  const L = (c,n=50) => c.repeat(n);
+  let txt = `PRONTUÁRIO — ${p.name.toUpperCase()}\n${L('─')}\n`;
+  if (p.age) txt += `Idade: ${p.age} anos\n`;
+  if (p.sex) txt += `Sexo: ${p.sex}\n`;
+  if (p.startDate) txt += `Início: ${fmt(p.startDate)}\n`;
+  if (p.tags?.length) txt += `Etiquetas: ${p.tags.join(', ')}\n`;
+  if (p.themes?.length) txt += `Temas trabalhados: ${p.themes.join(', ')}\n`;
+  if (p.summary) txt += `Queixa/Resumo: ${p.summary}\n`;
+  txt += `Total de sessões: ${sess.length}\n${L('─')}\n\n`;
+  sess.forEach((s,i) => { txt+=`SESSÃO ${i+1} — ${fmt(s.date)}`; if(s.time)txt+=` às ${s.time}`; if(s.dur)txt+=` (${s.dur} min)`; txt+=`\n${L('─',40)}\n${s.notes||'(sem notas)'}\n\n`; });
+  txt += `${L('─')}\nSUGESTÃO DE PROMPT:\n"Analise as sessões acima e elabore um resumo do progresso terapêutico deste paciente, destacando temas recorrentes, avanços observados e pontos de atenção para as próximas sessões."\n`;
+  document.getElementById('export-title').textContent = `🤖 Exportar — ${p.name}`;
+  document.getElementById('exp-ta').value = txt;
+  om('m-export');
+}
+
+function gerarPromptBoa() {
+  const agora = new Date();
+  const semAtr = new Date(agora); semAtr.setDate(agora.getDate()-7);
+  let sessSemana = [];
+  S.patients.forEach(p => { p.sessions.forEach(s => { if (new Date(s.date) >= semAtr) sessSemana.push({paciente:p.name,idade:p.age,temas:p.themes,data:s.date,notas:s.notes,dur:s.dur}); }); });
+  sessSemana.sort((a,b) => b.data.localeCompare(a.data));
+  let txt = `Você é um especialista em bem-estar de profissionais de saúde mental. Analise os dados abaixo e crie um RELATÓRIO MOTIVACIONAL E PROFISSIONAL sobre a semana de trabalho da psicóloga Melissa Tropia. Destaque: quantidade de pacientes atendidos, diversidade de casos, impacto observado, habilidades demonstradas, e o valor imensurável do seu trabalho. Seja encorajador, específico e genuinamente motivador. Finalize com uma mensagem de acolhimento.\n\n`;
+  txt += `DADOS DA ÚLTIMA SEMANA:\n${'─'.repeat(50)}\n`;
+  txt += `Total de sessões realizadas: ${sessSemana.length}\n`;
+  txt += `Pacientes únicos atendidos: ${new Set(sessSemana.map(s=>s.paciente)).size}\n\n`;
+  sessSemana.forEach((s,i) => { txt+=`SESSÃO ${i+1} — ${fmt(s.data)}\nPaciente: ${s.paciente}${s.idade?' ('+s.idade+' anos)':''}\n`; if(s.temas?.length)txt+=`Temas: ${s.temas.join(', ')}\n`; if(s.notas)txt+=`Notas: ${s.notas}\n`; txt+='\n'; });
+  if (sessSemana.length===0) { txt+=`(Não há sessões registradas na última semana)\n\n`; }
+  txt += `${'─'.repeat(50)}\nTotal de pacientes na base: ${S.patients.length}\n`;
+  txt += `Total de sessões (histórico completo): ${S.patients.reduce((a,p)=>a+p.sessions.length,0)}\n\n`;
+  txt += `Seu namorado mandou eu avisar que ele te ama muito ❤️`;
+  document.getElementById('export-title').textContent = '✨ O quão boa eu sou?';
+  document.getElementById('exp-ta').value = txt;
+  om('m-export');
+}
+
+function gerarDesabafo() {
+  const texto = document.getElementById('desaTa').value.trim();
+  if (!texto) { toast('Escreva seu desabafo primeiro 🌸'); return; }
+  const recentes = [];
+  S.patients.forEach(p => { p.sessions.slice(-2).forEach(s => { if (s.notes) recentes.push({paciente:p.name,data:s.date,notas:s.notes.slice(0,300)}); }); });
+  recentes.sort((a,b) => b.data.localeCompare(a.data));
+  let txt = `Você é um terapeuta empático e sábio que está conversando com uma psicóloga chamada Melissa. Ela precisa de apoio emocional, compreensão genuína e, quando apropriado, insights profissionais sobre seu bem-estar. Leia todo o contexto abaixo e responda com calor, cuidado e inteligência emocional.\n\n`;
+  txt += `MEU DESABAFO DE HOJE:\n${'─'.repeat(50)}\n${texto}\n\n`;
+  txt += `CONTEXTO DO MEU TRABALHO RECENTE:\n${'─'.repeat(40)}\n`;
+  if (recentes.length) { recentes.slice(0,8).forEach(r => { txt+=`${fmt(r.data)} — Paciente ${r.paciente}:\n${r.notas}\n\n`; }); }
+  else { txt += '(sem sessões recentes registradas)\n'; }
+  txt += `\nTotal de pacientes que acompanho: ${S.patients.length}\n`;
+  txt += `Total de sessões realizadas: ${S.patients.reduce((a,p)=>a+p.sessions.length,0)}\n\n`;
+  txt += `${'─'.repeat(50)}\nPor favor, responda ao meu desabafo com empatia, valide meus sentimentos e me ajude a processar o que estou sentindo.`;
+  document.getElementById('export-title').textContent = '😭 Prompt de Desabafo';
+  document.getElementById('exp-ta').value = txt;
+  om('m-export');
+}
+
+function copyExport() {
+  const ta = document.getElementById('exp-ta');
+  ta.select();
+  try { document.execCommand('copy'); } catch { navigator.clipboard?.writeText(ta.value); }
+  toast('📋 Texto copiado! Cole na sua IA favorita 🌸');
+}
+
+/* ═══════════════════════════════
+   FINANCIAL
+═══════════════════════════════ */
+function renderFinancial() {
+  const el = document.getElementById('fin-inner');
+  if (!el) return;
+  const allSess = [];
+  S.patients.forEach(p => { p.sessions.forEach(s => { allSess.push({...s,paciente:p.name,pacId:p.id}); }); });
+  allSess.sort((a,b) => b.date.localeCompare(a.date));
+  const totalPago = allSess.filter(s=>s.status==='pago'&&s.value).reduce((a,s)=>a+parseFloat(s.value||0),0);
+  const totalPend = allSess.filter(s=>s.status==='pendente'&&s.value).reduce((a,s)=>a+parseFloat(s.value||0),0);
+  const mesAtual = new Date().toISOString().slice(0,7);
+  const recebidoMes = allSess.filter(s=>s.date.slice(0,7)===mesAtual&&s.status==='pago'&&s.value).reduce((a,s)=>a+parseFloat(s.value||0),0);
+  el.innerHTML = `
+    <div class="view-title">💰 Gestão Financeira</div>
+    <div class="view-sub">Acompanhe o financeiro de todas as suas consultas</div>
+    <div class="stat-cards">
+      <div class="stat-card"><div class="stat-label">Total Recebido</div><div class="stat-val green">${fmtMoney(totalPago)}</div></div>
+      <div class="stat-card"><div class="stat-label">Pendente</div><div class="stat-val amber">${fmtMoney(totalPend)}</div></div>
+      <div class="stat-card"><div class="stat-label">Recebido este Mês</div><div class="stat-val green">${fmtMoney(recebidoMes)}</div></div>
+      <div class="stat-card"><div class="stat-label">Total de Sessões</div><div class="stat-val">${allSess.length}</div></div>
+    </div>
+    <div class="fin-table-wrap">
+      <div class="fin-filters">
+        <select class="sel" id="fin-f-status"><option value="">Todos os status</option><option value="pago">✅ Pago</option><option value="pendente">⏳ Pendente</option><option value="gratuito">🎁 Gratuito</option></select>
+        <select class="sel" id="fin-f-clinic"><option value="">Todas as clínicas</option>${S.clinics.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select>
+        <select class="sel" id="fin-f-plan"><option value="">Todos os planos</option>${[...S.plans,...S.tags].filter((v,i,a)=>a.indexOf(v)===i).map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('')}</select>
+      </div>
+      <div id="fin-tbody">${renderFinTable(allSess)}</div>
+    </div>`;
+  setTimeout(() => {
+    const st=document.getElementById('fin-f-status'), cl=document.getElementById('fin-f-clinic'), pl=document.getElementById('fin-f-plan');
+    if (!st) return;
+    const filtrar = () => {
+      let f = [...allSess];
+      if (st.value) f = f.filter(s=>s.status===st.value);
+      if (cl.value) f = f.filter(s=>s.clinic===cl.value);
+      if (pl.value) f = f.filter(s=>s.plan===pl.value);
+      document.getElementById('fin-tbody').innerHTML = renderFinTable(f);
+    };
+    [st,cl,pl].forEach(s => s.addEventListener('change', filtrar));
+  }, 50);
+}
+
+function renderFinTable(rows) {
+  if (!rows.length) return `<div class="fin-empty">Nenhuma sessão encontrada.</div>`;
+  return `<table><thead><tr><th>Data</th><th>Paciente</th><th>Clínica</th><th>Plano</th><th>Valor</th><th>Status</th></tr></thead><tbody>${
+    rows.map(s=>`<tr>
+      <td>${fmt(s.date)}</td><td>${esc(s.paciente)}</td><td>${esc(s.clinic)||'—'}</td><td>${esc(s.plan)||'—'}</td>
+      <td>${s.value&&parseFloat(s.value)>0?fmtMoney(s.value):'—'}</td>
+      <td><span class="scard-fin ${s.status==='pendente'?'fin-pend':s.status==='gratuito'?'':'fin-pago'}" style="${s.status==='gratuito'?'background:#f0f4ff;color:#4060b0;border:1px solid #c0d0f0':''}">${s.status==='pago'?'✅ Pago':s.status==='pendente'?'⏳ Pendente':'🎁 Gratuito'}</span></td>
+    </tr>`).join('')
+  }</tbody></table>`;
+}
+
+/* ═══════════════════════════════
+   PROGRESS
+═══════════════════════════════ */
+function renderProgress() {
+  const el = document.getElementById('prog-inner');
+  if (!el) return;
+  const today = new Date();
+  const allSess = [];
+  S.patients.forEach(p => p.sessions.forEach(s => allSess.push({...s,paciente:p.name,pac:p})));
+  const calcPeriod = days => { const since=new Date(today); since.setDate(today.getDate()-days); return allSess.filter(s=>new Date(s.date)>=since); };
+  const hoje = allSess.filter(s=>s.date===todayStr());
+  const semana = calcPeriod(7), mes = calcPeriod(30), ano = calcPeriod(365);
+  const uniq = arr => new Set(arr.map(s=>s.paciente)).size;
+  const weekLabels=[], weekVals=[];
+  for (let i=7;i>=0;i--) {
+    const start=new Date(today); start.setDate(today.getDate()-i*7-6);
+    const end=new Date(today); end.setDate(today.getDate()-i*7+1);
+    weekLabels.push(`S${i===0?'0':i}`);
+    weekVals.push(allSess.filter(s=>{const d=new Date(s.date);return d>=start&&d<=end}).length);
+  }
+  const gend={'Feminino':0,'Masculino':0,'Não-binário':0,'—':0};
+  S.patients.forEach(p=>{ const k=p.sex&&gend[p.sex]!==undefined?p.sex:'—'; gend[k]++; });
+  const ages={'0-12':0,'13-17':0,'18-29':0,'30-59':0,'60+':0,'N/D':0};
+  S.patients.forEach(p=>{ const a=parseInt(p.age); if(!a){ages['N/D']++}else if(a<=12)ages['0-12']++;else if(a<=17)ages['13-17']++;else if(a<=29)ages['18-29']++;else if(a<=59)ages['30-59']++;else ages['60+']++; });
+  const themeCount={};
+  S.patients.forEach(p=>(p.themes||[]).forEach(t=>{themeCount[t]=(themeCount[t]||0)+1}));
+  const themeEntries = Object.entries(themeCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const COLORS=['#e05a72','#f893a9','#fbbdca','#f0728a','#c84460','#4060b0','#6080d0','#80a0e0','#a0c0f0','#fde0e5'];
+  el.innerHTML = `
+    <div class="view-title">📊 Ver meu Progresso</div>
+    <div class="view-sub">Um olhar sobre o impacto do seu trabalho</div>
+    <div class="stat-cards">
+      <div class="stat-card"><div class="stat-label">Hoje</div><div class="stat-val">${hoje.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Última Semana</div><div class="stat-val">${semana.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Últimos 30 dias</div><div class="stat-val">${mes.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Último Ano</div><div class="stat-val">${ano.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Pacientes (semana)</div><div class="stat-val">${uniq(semana)}</div></div>
+      <div class="stat-card"><div class="stat-label">Pacientes (mês)</div><div class="stat-val">${uniq(mes)}</div></div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card full-chart"><div class="chart-title">Sessões por semana (últimas 8 semanas)</div><div class="chart-area">${barChart(weekLabels,weekVals)}</div></div>
+      <div class="chart-card"><div class="chart-title">Distribuição por Sexo</div><div class="chart-area">${donutChart(Object.entries(gend).filter(([,v])=>v>0).map(([k,v],i)=>({label:k,value:v,color:COLORS[i]})))}</div><div class="legend">${Object.entries(gend).filter(([,v])=>v>0).map(([k,v],i)=>`<div class="legend-item"><div class="legend-dot" style="background:${COLORS[i]}"></div>${k} (${v})</div>`).join('')}</div></div>
+      <div class="chart-card"><div class="chart-title">Faixa Etária</div><div class="chart-area">${donutChart(Object.entries(ages).filter(([,v])=>v>0).map(([k,v],i)=>({label:k,value:v,color:COLORS[i]})))}</div><div class="legend">${Object.entries(ages).filter(([,v])=>v>0).map(([k,v],i)=>`<div class="legend-item"><div class="legend-dot" style="background:${COLORS[i]}"></div>${k} (${v})</div>`).join('')}</div></div>
+      <div class="chart-card full-chart"><div class="chart-title">Temas mais trabalhados</div><div class="chart-area">${themeEntries.length?barChart(themeEntries.map(([k])=>k),themeEntries.map(([,v])=>v),'#4060b0',160,500):'<p style="color:var(--tx);text-align:center;font-size:12px">Adicione temas aos pacientes para visualizar</p>'}</div></div>
+    </div>`;
+}
+
+/* ═══════════════════════════════
+   SVG CHARTS
+═══════════════════════════════ */
+function donutChart(segs, size=170) {
+  const total = segs.reduce((s,x)=>s+x.value,0);
+  if (!total) return '<p style="color:var(--tx);font-size:12px">Sem dados</p>';
+  let paths='', angle=-Math.PI/2;
+  const cx=size/2, cy=size/2, r=size*.4, ir=size*.23;
+  segs.forEach(seg => {
+    const a=(seg.value/total)*2*Math.PI, ea=angle+a;
+    const x1=cx+r*Math.cos(angle), y1=cy+r*Math.sin(angle);
+    const x2=cx+r*Math.cos(ea), y2=cy+r*Math.sin(ea);
+    const ix1=cx+ir*Math.cos(ea), iy1=cy+ir*Math.sin(ea);
+    const ix2=cx+ir*Math.cos(angle), iy2=cy+ir*Math.sin(angle);
+    const la=a>Math.PI?1:0;
+    paths+=`<path d="M${x1},${y1}A${r},${r}0${la},1${x2},${y2}L${ix1},${iy1}A${ir},${ir}0${la},0${ix2},${iy2}Z" fill="${seg.color}" opacity=".9"/>`;
+    angle=ea;
+  });
+  const best = segs.reduce((a,b)=>b.value>a.value?b:a,segs[0]);
+  return `<svg viewBox="0 0 ${size} ${size}" style="width:${size}px;height:${size}px">${paths}<text x="${cx}" y="${cy-6}" text-anchor="middle" font-size="13" font-weight="800" fill="var(--td)">${best.value}</text><text x="${cx}" y="${cy+10}" text-anchor="middle" font-size="9" fill="var(--tx)">${best.label}</text></svg>`;
+}
+
+function barChart(labels, values, color='#e05a72', h=140, w=520) {
+  if (!values.length || Math.max(...values)===0) return '<p style="color:var(--tx);font-size:12px;text-align:center">Sem dados</p>';
+  const max=Math.max(...values,1), n=labels.length;
+  const bw=Math.min(50,(w-50)/n-5);
+  let bars='';
+  labels.forEach((l,i) => {
+    const bh=Math.max(2,(values[i]/max)*(h-38)), x=30+i*((w-40)/n), y=h-20-bh;
+    bars+=`<rect x="${x}" y="${y}" width="${bw}" height="${bh}" fill="${color}" rx="3" opacity=".85"/>`;
+    const lbl=l.length>6?l.slice(0,6)+'…':l;
+    bars+=`<text x="${x+bw/2}" y="${h-6}" text-anchor="middle" font-size="8" fill="var(--tx)">${lbl}</text>`;
+    if (values[i]>0) bars+=`<text x="${x+bw/2}" y="${y-3}" text-anchor="middle" font-size="9" font-weight="600" fill="var(--tm)">${values[i]}</text>`;
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;max-width:${w}px;height:${h}px">${bars}</svg>`;
+}
+
+/* ═══════════════════════════════
+   MODALS
+═══════════════════════════════ */
+function om(id) { document.getElementById(id).style.display='flex'; }
+function cm(id) { document.getElementById(id).style.display='none'; }
+function ocl(e, id) { if (e.target.id===id) cm(id); }
+let _cfCb = null;
+function confirm_(title, text, cb) {
+  document.getElementById('conf-title').textContent = title;
+  document.getElementById('conf-txt').innerHTML = text;
+  _cfCb = cb;
+  document.getElementById('conf-btn').onclick = () => { cm('m-confirm'); _cfCb?.(); };
+  om('m-confirm');
+}
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') ['m-pac','m-sess','m-export','m-addtag','m-confirm','m-moti'].forEach(cm);
+  if (e.key==='Enter'&&!e.shiftKey&&document.getElementById('m-pac').style.display!=='none'&&document.activeElement!==document.getElementById('fp-sum')) { e.preventDefault(); savePac(); }
+  if (e.key==='Enter'&&!e.shiftKey&&document.getElementById('m-addtag').style.display!=='none') { e.preventDefault(); saveNewTag(); }
+});
+
+/* ═══════════════════════════════
+   TELAS
+═══════════════════════════════ */
+function mostrarLogin() {
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+function entrarApp(user) {
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  atualizarUserUI(user);
+  navTo('patients');
+  render();
+}
+
+/* ═══════════════════════════════
+   INIT
+═══════════════════════════════ */
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    currentUser = user;
+    await carregarDados();
+    entrarApp(user);
+  } else {
+    currentUser = null;
+    S = dadosVazios();
+    mostrarLogin();
+  }
+});
+</script>
+</body>
+</html>
