@@ -2,7 +2,11 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Mel Notes">
+<meta name="theme-color" content="#ffffff">
 <title>Mel Notes</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -95,6 +99,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .nav-spacer{flex:1}
 .nav-good-btn{width:48px;height:48px;border-radius:var(--r);border:none;cursor:pointer;background:linear-gradient(135deg,var(--r5),var(--r6));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 2px 8px rgba(200,68,96,.3);transition:all var(--t);margin:0 auto}
 .nav-good-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(200,68,96,.4)}
+.hbg-btn{display:none}
 .nav-good-btn span:first-child{font-size:18px;line-height:1}
 .nav-good-btn .nav-lbl{font-size:7px;font-weight:800;color:#fff;letter-spacing:.3px;text-align:center;line-height:1.2}
 
@@ -264,7 +269,104 @@ tr:hover td{background:var(--r1)}
 .toast{position:fixed;bottom:22px;right:22px;background:var(--td);color:#fff;padding:11px 16px;border-radius:var(--rsm);font-size:13px;font-weight:500;box-shadow:var(--sl);z-index:300;pointer-events:none;animation:toastin .18s ease}
 @keyframes toastin{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--r3);border-radius:3px}
-@media(max-width:700px){:root{--psw:200px;--nav:54px}.pd{padding:16px 14px}.view-inner{padding:16px 14px}.charts-grid{grid-template-columns:1fr}}
+
+/* ── MOBILE ── */
+@media(max-width:700px){
+  :root{--bnav:60px}
+  body{overflow:hidden}
+
+  /* Header com safe area no topo */
+  .hdr{padding-top:env(safe-area-inset-top);height:calc(var(--hh) + env(safe-area-inset-top));padding-right:16px}
+  .hbrand{width:52px}
+  .htitle{font-size:16px}
+
+  /* Esconde nav lateral, mostra bottom nav */
+  .nav-side{display:none}
+  .body-wrap{padding-bottom:var(--bnav)}
+
+  /* Bottom Nav */
+  .bottom-nav{display:flex!important;position:fixed;bottom:0;left:0;right:0;height:calc(var(--bnav) + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:#fff;border-top:1px solid var(--bl);z-index:50;align-items:flex-start;padding-top:6px;box-shadow:0 -2px 12px rgba(160,80,96,.08)}
+  .bn-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;border:none;background:transparent;cursor:pointer;padding:6px 0;font-family:inherit}
+  .bn-btn span:first-child{font-size:20px;line-height:1}
+  .bn-lbl{font-size:9px;font-weight:700;color:var(--tx);letter-spacing:.2px}
+  .bn-btn.active .bn-lbl{color:var(--r6)}
+  .bn-btn.active{background:transparent}
+  .bn-good{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;border:none;cursor:pointer;padding:4px 0;font-family:inherit;background:transparent}
+  .bn-good-inner{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,var(--r5),var(--r6));display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 2px 8px rgba(200,68,96,.3);margin-top:-8px}
+  .bn-good .bn-lbl{font-size:8px;font-weight:800;color:var(--r5)}
+
+  /* Views ocupam tela inteira */
+  .view{width:100%}
+
+  /* Pacientes: fluxo lista → detalhe */
+  #view-patients{flex-direction:column;position:relative}
+  .psidebar{width:100%;height:100%;border-right:none}
+  .pmain{position:absolute;inset:0;background:var(--bg);display:none;overflow-y:auto;z-index:2}
+  #view-patients.mostrando-detalhe .psidebar{display:none}
+  #view-patients.mostrando-detalhe .pmain{display:block}
+
+  /* Botão voltar no detalhe */
+  .btn-voltar{display:flex!important;align-items:center;gap:6px;background:none;border:none;font-size:14px;font-weight:600;color:var(--r5);padding:14px 16px 6px;cursor:pointer;font-family:inherit}
+
+  /* Detalhe do paciente */
+  .pd{padding:12px 16px}
+  .pd-hdr{flex-wrap:wrap;gap:12px}
+  .pd-name{font-size:20px}
+
+  /* Session card */
+  .scard-prev{max-width:140px}
+
+  /* Views com scroll */
+  #view-financial,#view-progress,#view-desabafar{overflow-y:auto}
+  .view-inner{padding:16px}
+  .charts-grid{grid-template-columns:1fr}
+  .stat-cards{grid-template-columns:1fr 1fr}
+
+  /* Modais full screen no mobile */
+  .overlay{padding:0;align-items:flex-end}
+  .modal{border-radius:var(--rlg) var(--rlg) 0 0;max-width:100%;max-height:92vh;overflow-y:auto}
+  .perfil-modal{border-radius:var(--rlg) var(--rlg) 0 0;max-height:96vh;overflow-y:auto}
+  .modal-xl .export-ta{min-height:180px}
+
+  /* Inputs: font 16px para não dar zoom no iOS */
+  .fi,.fta,.lfi,.srch-wrap input{font-size:16px!important}
+
+  /* Toast acima do bottom nav */
+  .toast{bottom:calc(var(--bnav) + env(safe-area-inset-bottom) + 10px);right:16px;left:16px;text-align:center}
+
+  /* Login card no mobile */
+  .lc{border-radius:var(--rlg) var(--rlg) 0 0;padding:32px 24px 32px;position:fixed;bottom:0;left:0;right:0;max-width:100%}
+  #login-screen{align-items:flex-end}
+
+  /* Form grid simples no mobile */
+  .fr,.fr3{grid-template-columns:1fr}
+
+  /* Hamburger */
+  .hbg-btn{display:flex!important;align-items:center;justify-content:center;width:40px;height:40px;border:none;background:transparent;cursor:pointer;font-size:22px;color:var(--td);border-radius:var(--rsm);flex-shrink:0;padding:0;-webkit-tap-highlight-color:transparent}
+  .hbrand .hlogo{display:none}
+  .hbrand{width:44px!important}
+
+  /* Drawer */
+  .drawer-overlay{position:fixed;inset:0;background:rgba(40,25,28,.38);backdrop-filter:blur(2px);z-index:200;opacity:0;pointer-events:none;transition:opacity .22s ease}
+  .drawer-overlay.open{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;left:0;bottom:0;width:270px;max-width:85vw;background:#fff;z-index:201;transform:translateX(-100%);transition:transform .22s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top);box-shadow:4px 0 24px rgba(160,80,96,.15)}
+  .drawer.open{transform:translateX(0)}
+  .dr-user{padding:20px 18px 16px;border-bottom:1px solid var(--bl);display:flex;align-items:center;gap:12px;cursor:pointer}
+  .dr-av{width:44px;height:44px;border-radius:50%;border:2px solid var(--r3);overflow:hidden;background:linear-gradient(135deg,var(--r3),var(--r5));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+  .dr-av img{width:100%;height:100%;object-fit:cover;display:block}
+  .dr-nome{font-size:14px;font-weight:700;color:var(--td);line-height:1.3}
+  .dr-email{font-size:11px;color:var(--tx);margin-top:2px}
+  .dr-nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+  .dr-btn{display:flex;align-items:center;gap:12px;padding:12px 12px;border-radius:var(--rsm);border:none;background:transparent;cursor:pointer;font-family:inherit;font-size:14px;font-weight:500;color:var(--td);width:100%;text-align:left;transition:all var(--t);-webkit-tap-highlight-color:transparent}
+  .dr-btn:active{background:var(--r1)}
+  .dr-btn.active{background:var(--r2);color:var(--r6);font-weight:700}
+  .dr-btn-icon{font-size:20px;width:28px;text-align:center;flex-shrink:0;line-height:1}
+  .dr-sep{height:1px;background:var(--bl);margin:6px 12px}
+  .dr-footer{padding:10px 8px 10px;border-top:1px solid var(--bl);padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+  .dr-btn-sair{color:#c0392b!important}
+  .dr-btn-sair:active{background:#fff0f0!important}
+}
+@media(min-width:701px){.bottom-nav{display:none!important}.btn-voltar{display:none!important}}
 </style>
 </head>
 <body>
@@ -310,7 +412,7 @@ tr:hover td{background:var(--r1)}
 <!-- APP -->
 <div id="app">
   <header class="hdr">
-    <div class="hbrand"><div class="hlogo">🧠</div></div>
+    <div class="hbrand"><button class="hbg-btn" onclick="toggleDrawer()">☰</button><div class="hlogo">🧠</div></div>
     <div class="htitle-wrap">
       <span class="htitle">Mel Notes</span>
       <span class="sbadge hidden" id="saveBadge">✓ Salvo</span>
@@ -327,6 +429,15 @@ tr:hover td{background:var(--r1)}
       <button class="nav-btn" id="nav-desabafar" onclick="navTo('desabafar')"><span>😭</span><span class="nav-lbl">Desabafar</span></button>
       <div class="nav-spacer"></div>
       <button class="nav-good-btn" onclick="gerarPromptBoa()"><span>✨</span><span class="nav-lbl">Quão boa<br>eu sou?</span></button>
+    </nav>
+
+    <!-- BOTTOM NAV (mobile only) -->
+    <nav class="bottom-nav">
+      <button class="bn-btn active" id="bn-patients" onclick="navTo('patients')"><span>👥</span><span class="bn-lbl">Pacientes</span></button>
+      <button class="bn-btn" id="bn-financial" onclick="navTo('financial')"><span>💰</span><span class="bn-lbl">Finanças</span></button>
+      <button class="bn-good" onclick="gerarPromptBoa()"><div class="bn-good-inner">✨</div><span class="bn-lbl">Quão boa?</span></button>
+      <button class="bn-btn" id="bn-progress" onclick="navTo('progress')"><span>📊</span><span class="bn-lbl">Progresso</span></button>
+      <button class="bn-btn" id="bn-desabafar" onclick="navTo('desabafar')"><span>😭</span><span class="bn-lbl">Desabafar</span></button>
     </nav>
 
     <div id="view-patients" class="view active">
@@ -356,6 +467,30 @@ tr:hover td{background:var(--r1)}
           <div class="desa-foot"><button class="btn btn-p" onclick="gerarDesabafo()">✨ Gerar Desabafo para IA</button></div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- DRAWER (mobile) -->
+  <div id="drawer-overlay" class="drawer-overlay" onclick="closeDrawer()"></div>
+  <div id="drawer" class="drawer">
+    <div class="dr-user" onclick="closeDrawer();abrirPerfil()">
+      <div class="dr-av" id="dr-av"></div>
+      <div>
+        <div class="dr-nome" id="dr-nome"></div>
+        <div class="dr-email" id="dr-email"></div>
+      </div>
+    </div>
+    <div class="dr-nav">
+      <button class="dr-btn active" id="dr-patients" onclick="drNavTo('patients')"><span class="dr-btn-icon">👥</span>Pacientes</button>
+      <button class="dr-btn" id="dr-financial" onclick="drNavTo('financial')"><span class="dr-btn-icon">💰</span>Finanças</button>
+      <button class="dr-btn" id="dr-progress" onclick="drNavTo('progress')"><span class="dr-btn-icon">📊</span>Progresso</button>
+      <button class="dr-btn" id="dr-desabafar" onclick="drNavTo('desabafar')"><span class="dr-btn-icon">😭</span>Desabafar</button>
+      <div class="dr-sep"></div>
+      <button class="dr-btn" onclick="closeDrawer();gerarPromptBoa()"><span class="dr-btn-icon">✨</span>Quão boa eu sou?</button>
+    </div>
+    <div class="dr-footer">
+      <button class="dr-btn" onclick="closeDrawer();abrirPerfil()"><span class="dr-btn-icon">👤</span>Meu Perfil</button>
+      <button class="dr-btn dr-btn-sair" onclick="logout()"><span class="dr-btn-icon">↪</span>Sair da conta</button>
     </div>
   </div>
 </div>
@@ -597,8 +732,46 @@ async function registrarEmail() {
 }
 
 async function logout() {
-  fecharUserMenu();
+  closeDrawer();
   await auth.signOut();
+}
+
+/* ═══════════════════════════════
+   DRAWER
+═══════════════════════════════ */
+function toggleDrawer() {
+  const drawer = document.getElementById('drawer');
+  if (drawer.classList.contains('open')) { closeDrawer(); return; }
+  const user = currentUser;
+  const nome = S.profile?.displayName || user?.displayName || user?.email?.split('@')[0] || '';
+  const drNome = document.getElementById('dr-nome');
+  const drEmail = document.getElementById('dr-email');
+  const drAv = document.getElementById('dr-av');
+  if (drNome) drNome.textContent = nome;
+  if (drEmail) drEmail.textContent = user?.email || '';
+  if (drAv) {
+    if (S.profile?.photoData) drAv.innerHTML = `<img src="${S.profile.photoData}" alt="">`;
+    else if (user?.photoURL) drAv.innerHTML = `<img src="${user.photoURL}" alt="">`;
+    else {
+      const ini = nome.trim().split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
+      drAv.textContent = ini || '👤';
+    }
+  }
+  ['patients','financial','progress','desabafar'].forEach(n => {
+    document.getElementById(`dr-${n}`)?.classList.toggle('active', currentView === n);
+  });
+  drawer.classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer')?.classList.remove('open');
+  document.getElementById('drawer-overlay')?.classList.remove('open');
+}
+
+function drNavTo(v) {
+  closeDrawer();
+  navTo(v);
 }
 
 /* ═══════════════════════════════
@@ -904,7 +1077,10 @@ function navTo(v) {
   ['patients','financial','progress','desabafar'].forEach(n => {
     document.getElementById(`view-${n}`).classList.toggle('active', n === v);
     document.getElementById(`nav-${n}`)?.classList.toggle('active', n === v);
+    document.getElementById(`bn-${n}`)?.classList.toggle('active', n === v);
+    document.getElementById(`dr-${n}`)?.classList.toggle('active', n === v);
   });
+  if (v === 'patients') document.getElementById('view-patients')?.classList.remove('mostrando-detalhe');
   if (v === 'financial') renderFinancial();
   if (v === 'progress') renderProgress();
 }
@@ -948,6 +1124,7 @@ function renderPMain() {
   if (!p) { S.selId = null; renderPMain(); return; }
   const sessions = [...p.sessions].sort((a,b) => (b.date+(b.time||'00:00')).localeCompare(a.date+(a.time||'00:00')));
   main.innerHTML = `
+    <button class="btn-voltar" onclick="voltarLista()">← Pacientes</button>
     <div class="pd">
       <div class="pd-hdr">
         <div class="pd-av">${inits(p.name)}</div>
@@ -1005,7 +1182,20 @@ function renderSCard(p, s, num) {
   </div>`;
 }
 
-function selPac(id) { S.selId = id; renderPList(); renderPMain(); }
+function selPac(id) {
+  S.selId = id;
+  renderPList();
+  renderPMain();
+  if (window.innerWidth <= 700) {
+    document.getElementById('view-patients').classList.add('mostrando-detalhe');
+  }
+}
+
+function voltarLista() {
+  S.selId = null;
+  document.getElementById('view-patients').classList.remove('mostrando-detalhe');
+  renderPMain();
+}
 function toggleSC(sid) { document.getElementById(`sc-${sid}`)?.classList.toggle('open'); }
 
 function toggleStatus(pid, sid, e) {
